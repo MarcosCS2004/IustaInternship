@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import random
 import time
-from urllib.parse import unquote  # <-- Added import for URL decoding
+from urllib.parse import unquote, urlparse, parse_qs  # <-- Added for proper URL handling
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -11,7 +11,6 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64)",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
 ]
-
 
 def duckduckgo_first_result(query):
     headers = {
@@ -29,7 +28,7 @@ def duckduckgo_first_result(query):
         if results:
             link = results[0]['href']
 
-            # Parse out the "uddg" parameter if it's a redirect link
+            # Parse and extract actual destination if it's a DuckDuckGo redirect
             parsed = urlparse(link)
             query_params = parse_qs(parsed.query)
             if 'uddg' in query_params:
@@ -37,16 +36,13 @@ def duckduckgo_first_result(query):
                 print(f"✅ Extracted real URL: {real_url}")
                 return real_url
             else:
-                # Not a duckduckgo redirect link, return as-is
                 print(f"✅ Direct URL: {link}")
                 return link
-
         else:
             return ""
     except Exception as e:
         print(f"Error searching '{query}': {e}")
         return ""
-
 
 # Read, process and write back to the same CSV
 input_file = "law_firms_playwright.csv"
@@ -55,14 +51,14 @@ output_rows = []
 try:
     with open(input_file, mode='r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
-        fieldnames = reader.fieldnames + ['linkedin'] if 'linkedin' not in reader.fieldnames else reader.fieldnames
+        fieldnames = reader.fieldnames + ['website'] if 'website' not in reader.fieldnames else reader.fieldnames
 
         for row in reader:
             name = row['Name']
-            query = f"Linkedin {name}"
+            query = f"{name} website"
             print(query)
             link = duckduckgo_first_result(query)
-            row['linkedin'] = link
+            row['Website'] = link
             output_rows.append(row)
 
     # Write the updated data back to the same file
@@ -71,7 +67,7 @@ try:
         writer.writeheader()
         writer.writerows(output_rows)
 
-    print("✅ File updated with LinkedIn links.")
+    print("✅ File updated with website links.")
 
 except Exception as e:
     print(f"General error: {e}")
