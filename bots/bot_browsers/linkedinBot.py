@@ -14,9 +14,7 @@ USER_AGENTS = [
 
 
 def duckduckgo_first_result(query):
-    headers = {
-        "User-Agent": random.choice(USER_AGENTS)
-    }
+    headers = {"User-Agent": random.choice(USER_AGENTS)}
 
     url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
 
@@ -27,13 +25,13 @@ def duckduckgo_first_result(query):
 
         results = soup.select("a.result__a")
         if results:
-            link = results[0]['href']
+            link = results[0]["href"]
 
             # Parse out the "uddg" parameter if it's a redirect link
             parsed = urlparse(link)
             query_params = parse_qs(parsed.query)
-            if 'uddg' in query_params:
-                real_url = unquote(query_params['uddg'][0])
+            if "uddg" in query_params:
+                real_url = unquote(query_params["uddg"][0])
                 print(f"✅ Extracted real URL: {real_url}")
                 return real_url
             else:
@@ -53,20 +51,24 @@ input_file = "law_firms_playwright.csv"
 output_rows = []
 
 try:
-    with open(input_file, mode='r', encoding='utf-8') as file:
+    with open(input_file, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        fieldnames = reader.fieldnames + ['linkedin'] if 'linkedin' not in reader.fieldnames else reader.fieldnames
+        fieldnames = (
+            reader.fieldnames + ["linkedin"]
+            if "linkedin" not in reader.fieldnames
+            else reader.fieldnames
+        )
 
         for row in reader:
-            name = row['Name']
+            name = row["Name"]
             query = f"Linkedin {name}"
             print(query)
             link = duckduckgo_first_result(query)
-            row['linkedin'] = link
+            row["linkedin"] = link
             output_rows.append(row)
 
     # Write the updated data back to the same file
-    with open(input_file, mode='w', encoding='utf-8', newline='') as output_file:
+    with open(input_file, mode="w", encoding="utf-8", newline="") as output_file:
         writer = csv.DictWriter(output_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(output_rows)
