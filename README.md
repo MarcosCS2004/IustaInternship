@@ -7,33 +7,36 @@ This project automates the search and collection of information about law firms 
 ## 📁 Project Structure
 
 ```
-scripts/
-├── bots/                       # Bots for web navigation and scraping
-│   ├── browsers/               # General scrapers 
-│   │   ├── linkedin_bot.py
-│   │   └── web_finder_bot.py
-│   ├── lawfirms/               # Law firm-specific scrapers
-│   │   ├── bot_scraper.py
-│   │   └── filtered_bot.py
-│   └── specific_pages/         # Step-by-step scrapers
-│       ├── get_links_step1.py
-│       └── get_data_from_links_step2.py
-├── filters/                    # Filtering and classification
-│   ├── filter_links_by_words_step1.py
-│   ├── filter_useful_links_step2.py
-│   ├── classify_links_by_category_step3.py
-│   └── split_by_category_step4.py
-├── search/                     # Initial search via API
-│   └── search_lawyers_api.py
-└── tools/                      # General utility scripts
-    └── put_space_after_comma.py
-
-data/
-├── raw/                        # Raw, unprocessed data
-└── processed/                  # Cleaned/ready data
-
-logs/                           # Execution logs
-└── run_log.txt
+|
+├── main.py
+|
+├── scripts/
+│    ├── bots/                                       # Bots for web navigation and scraping
+|    │   ├── browsers/                               # General scrapers 
+|    │   │   ├── linkedin_bot.py
+|    │   │   └── web_finder_bot.py
+|    │   ├── lawfirms/                               # Law firm-specific scrapers
+|    │   │   ├── bot_scraper.py
+|    │   │   └── filtered_bot.py
+|    │   └── specific_pages/                         # Step-by-step scrapers from a specific URL
+|    │       ├── get_links_step1.py
+|    │       └── get_data_from_links_step2.py
+|    ├── filters/                                    # Filtering and classification
+|    │   ├── filter_links_by_words_step1.py
+|    │   ├── filter_useful_links_step2.py
+|    │   ├── classify_links_by_category_step3.py
+|    │   └── split_by_category_step4.py
+|    ├── search/                                     # Initial search via API
+|    │   └── search_lawyers_api.py
+|    └── tools/                                      # General utility scripts
+|        └── put_space_after_comma.py
+|
+├── data/
+|    ├── raw/                                        # Raw, unprocessed data
+|    └── processed/                                  # Cleaned/ready data
+|
+└── logs/                                           # Execution logs
+    └── run_log.txt
 
 ```
 
@@ -54,14 +57,14 @@ logs/                           # Execution logs
 1. Clone the repository:
 ```bash
 git clone https://github.com/MarcosCS2004/IustaInternship
-cd lawfirms-germany
+
 ```
 
 2. Create and activate a virtual environment:
 ```bash
 python -m venv venv
-source venv/bin/activate       # Linux/macOS
-venv\Scripts\activate        # Windows
+source venv/bin/activate        # Linux/macOS
+venv\Scripts\activate           # Windows
 ```
 
 3. Install dependencies:
