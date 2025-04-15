@@ -21,7 +21,7 @@ params = {
     "location": location,
     "hl": "de",  # German results
     "gl": "de",
-    "start": 0
+    "start": 0,
 }
 
 # Track seen links to avoid duplicates
