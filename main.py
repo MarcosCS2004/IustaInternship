@@ -25,7 +25,8 @@ def main():
         "6": ("Format text: Add space after commas", "scripts/tools/put_space_after_comma.py"),
         "7": ("Scrape links from specific pages (Step 1)", "scripts/bots/specific_pages/get_links_step1.py"),
         "8": ("Scrape data from collected links (Step 2)", "scripts/bots/specific_pages/get_data_from_links_step2.py"),
-        "9": ("Exit", None)
+        "9": ("Scrape data from anwalt.de", "scripts/bots/specific_pages/get_data_from_anwalt.py"),
+        "10": ("Exit", None)
     }
 
     while True:
@@ -33,16 +34,16 @@ def main():
         for key, (description, _) in options.items():
             print(f"{key}. {description}")
 
-        choice = input("Select an option (1-9): ").strip()
+        choice = input("Select an option (1-10): ").strip()
 
-        if choice == "9":
+        if choice == "10":
             print("Exiting... Goodbye!")
             break
         elif choice in options:
             _, script_path = options[choice]
             run_script(script_path)
         else:
-            print("Invalid choice. Please select a number between 1 and 9.")
+            print("Invalid choice. Please select a number between 1 and 10.")
 
 if __name__ == "__main__":
     main()
