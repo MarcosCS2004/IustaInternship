@@ -11,25 +11,35 @@ This project automates the search and collection of information about law firms 
 ├── main.py
 |
 ├── scripts/
+|    |
 │    ├── bots/                                       # Bots for web navigation and scraping
+|    |   |
 |    │   ├── browsers/                               # General scrapers 
 |    │   │   ├── linkedin_bot.py
 |    │   │   └── web_finder_bot.py
+|    |   |
 |    │   ├── lawfirms/                               # Law firm-specific scrapers
 |    │   │   ├── bot_scraper.py
 |    │   │   └── filtered_bot.py
+|    |   |
 |    │   └── specific_pages/                         # Step-by-step scrapers from a specific URL
 |    │       ├── get_links_step1.py
 |    │       └── get_data_from_links_step2.py
+|    |       └── get_data_from_anwalt.py
+|    |
+|    |
 |    ├── filters/                                    # Filtering and classification
 |    │   ├── filter_links_by_words_step1.py
 |    │   ├── filter_useful_links_step2.py
 |    │   ├── classify_links_by_category_step3.py
 |    │   └── split_by_category_step4.py
+|    |
 |    ├── search/                                     # Initial search via API
 |    │   └── search_lawyers_api.py
+|    |
 |    └── tools/                                      # General utility scripts
-|        └── put_space_after_comma.py
+|        ├── put_space_after_comma.py
+|        └── remove_duplicates.py
 |
 ├── data/
 |    ├── raw/                                        # Raw, unprocessed data
