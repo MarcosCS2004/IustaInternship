@@ -7,7 +7,7 @@ from urllib.parse import (
     unquote,
     urlparse,
     parse_qs,
-)  # <-- Added for proper URL handling
+)
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -15,7 +15,6 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64)",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
 ]
-
 
 def duckduckgo_first_result(query):
     headers = {"User-Agent": random.choice(USER_AGENTS)}
@@ -48,34 +47,40 @@ def duckduckgo_first_result(query):
         return ""
 
 
-# Read, process and write back to the same CSV
-input_file = "law_firms_playwright.csv"
+# Asking user for input CSV file path, output CSV file name, and column name containing the company names
+input_file = input("Enter the path to your input CSV file: ").strip()  # Ask for input CSV file
+column_name = input("Enter the name of the column that contains the company names: ").strip()  # Ask for column name
+output_file_name = input("Enter the name for the output CSV file: ").strip()  # Ask for output CSV file name
+
 output_rows = []
 
 try:
     with open(input_file, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
+        
+        # Add 'Website' to the fieldnames if it's not already present
         fieldnames = (
-            reader.fieldnames + ["website"]
-            if "website" not in reader.fieldnames
+            reader.fieldnames + ["Website"]
+            if "Website" not in reader.fieldnames
             else reader.fieldnames
         )
 
         for row in reader:
-            name = row["Name"]
+            # Fetching the company name from the user-provided column
+            name = row[column_name]
             query = f"{name} website"
-            print(query)
+            print(f"Searching for: {query}")
             link = duckduckgo_first_result(query)
             row["Website"] = link
             output_rows.append(row)
 
-    # Write the updated data back to the same file
-    with open(input_file, mode="w", encoding="utf-8", newline="") as output_file:
+    # Write the updated data back to a new CSV file
+    with open(output_file_name, mode="w", encoding="utf-8", newline="") as output_file:
         writer = csv.DictWriter(output_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(output_rows)
 
-    print("✅ File updated with website links.")
+    print(f"✅ File updated with website links and saved as '{output_file_name}'.")
 
 except Exception as e:
     print(f"General error: {e}")

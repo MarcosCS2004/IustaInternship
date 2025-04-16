@@ -1,113 +1,63 @@
-import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-import re
-from datetime import datetime
+import pandas as pd  # For handling CSV files
+import requests  # For making HTTP requests
+from bs4 import BeautifulSoup  # For parsing HTML content
+from urllib.parse import urlparse  # For analyzing URL components
+import re  # For regular expressions
+from datetime import datetime  # For timestamps (if needed)
 
-
+# Analyze a single web page and classify it as a law firm, lawyer directory, or other
 def analyze_law_page(url):
-    """
-    Analyzes a web page to determine if it's a lawyer directory, law firm, or other.
-    Focused on German law websites with English detection logic.
-
-    Args:
-        url (str): URL to analyze
-
-    Returns:
-        str: "Lawyer directory", "Law firm", or "Other"
-    """
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "User-Agent": "Mozilla/5.0",
             "Accept-Language": "en-US,en;q=0.9,de;q=0.8",
         }
 
+        # Make request to the URL
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
 
+        # Parse the page and extract all text
         soup = BeautifulSoup(response.text, "html.parser")
         page_text = soup.get_text().lower()
 
-        # German and English keywords for lawyer directories
+        # Keywords to identify lawyer directories
         directory_keywords = [
-            # German terms
-            "anwaltsverzeichnis",
-            "anwaltssuche",
-            "anwaltsliste",
-            "rechtsanwaltskammer",
-            "anwaltskammer",
-            "anwaltsdatenbank",
-            "anwalt finden",
-            "anwälte suchen",
-            "anwaltsregister",
-            # English terms
-            "lawyer directory",
-            "attorney search",
-            "find a lawyer",
-            "lawyer list",
-            "attorney listing",
-            "lawyer database",
-            "bar association",
-            "legal directory",
+            "anwaltsverzeichnis", "anwaltssuche", "anwaltsliste", "rechtsanwaltskammer", "anwaltskammer",
+            "anwaltsdatenbank", "anwalt finden", "anwälte suchen", "anwaltsregister", "lawyer directory",
+            "attorney search", "find a lawyer", "lawyer list", "attorney listing", "lawyer database",
+            "bar association", "legal directory",
         ]
 
-        # German and English keywords for law firms
+        # Keywords to identify law firms
         firm_keywords = [
-            # German terms
-            "kanzlei",
-            "rechtsanwälte",
-            "anwaltskanzlei",
-            "anwaltsbüro",
-            "anwaltsteam",
-            "anwaltssozietät",
-            "fachanwälte",
-            "anwaltsgruppe",
-            "rechtsanwaltsbüro",
-            # English terms
-            "law firm",
-            "legal firm",
-            "attorneys at law",
-            "legal office",
-            "law office",
-            "legal team",
-            "lawyers",
-            "attorneys",
-            "legal services",
-            "our lawyers",
-            "legal experts",
+            "kanzlei", "rechtsanwälte", "anwaltskanzlei", "anwaltsbüro", "anwaltsteam", "anwaltssozietät",
+            "fachanwälte", "anwaltsgruppe", "rechtsanwaltsbüro", "law firm", "legal firm", "attorneys at law",
+            "legal office", "law office", "legal team", "lawyers", "attorneys", "legal services",
+            "our lawyers", "legal experts",
         ]
 
-        # Check for lawyer directory patterns
+        # Check if page contains directory-related keywords
         for keyword in directory_keywords:
             if keyword in page_text:
                 return "Lawyer directory"
 
-        # Check for law firm patterns
+        # Check if page contains law firm-related keywords
         for keyword in firm_keywords:
             if keyword in page_text:
                 return "Law firm"
 
-        # Check HTML structure patterns
-        # 1. Lawyer directories typically have multiple profiles
-        lawyer_profiles = soup.find_all(
-            class_=re.compile(
-                r"anwalt|attorney|lawyer|profile|profil|team|member|mitglied", re.I
-            )
-        )
+        # Check class names that might indicate lawyer profiles
+        lawyer_profiles = soup.find_all(class_=re.compile(r"anwalt|attorney|lawyer|profile|profil|team|member|mitglied", re.I))
         if len(lawyer_profiles) > 3:
             return "Lawyer directory"
 
-        # 2. Law firms often have "about us" or "our team" sections
-        team_sections = soup.find_all(
-            class_=re.compile(
-                r"team|unser-team|über-uns|about|attorneys|lawyers|anwälte", re.I
-            )
-        )
+        # Check class names for "team" or "about us" sections, which are common in law firm websites
+        team_sections = soup.find_all(class_=re.compile(r"team|unser-team|über-uns|about|attorneys|lawyers|anwälte", re.I))
         if team_sections:
             return "Law firm"
 
-        # 3. Check page title and meta description
+        # Check title and meta description for classification clues
         title = soup.title.string.lower() if soup.title else ""
         meta_desc = soup.find("meta", attrs={"name": "description"})
         meta_desc = meta_desc.get("content", "").lower() if meta_desc else ""
@@ -120,63 +70,52 @@ def analyze_law_page(url):
             if keyword in title or keyword in meta_desc:
                 return "Law firm"
 
-        # 4. Check for common German law firm URL patterns
+        # Analyze domain name for common law firm-related terms
         domain = urlparse(url).netloc.lower()
-        if any(
-            word in domain for word in ["kanzlei", "rechtsanwaelte", "anwalt", "ra-"]
-        ):
+        if any(word in domain for word in ["kanzlei", "rechtsanwaelte", "anwalt", "ra-"]):
             return "Law firm"
 
-        # 5. Check for imprint/impressum which often contains firm info
+        # Try checking the "Impressum" (legal notice) page for firm-related terms
         impressum = soup.find("a", href=re.compile(r"impressum|imprint", re.I))
         if impressum:
-            impressum_text = requests.get(
-                requests.compat.urljoin(url, impressum["href"]), headers=headers
-            ).text.lower()
+            impressum_text = requests.get(requests.compat.urljoin(url, impressum["href"]), headers=headers).text.lower()
             if any(keyword in impressum_text for keyword in firm_keywords):
                 return "Law firm"
 
         return "Other"
 
+    # Handle HTTP/network errors
     except requests.exceptions.RequestException as e:
         print(f"Network error analyzing {url}: {str(e)}")
         return "Error: Request failed"
+
+    # Handle any other unexpected issues
     except Exception as e:
         print(f"Error analyzing {url}: {str(e)}")
         return "Error: Analysis failed"
 
-
-def process_law_firm_csv(input_file, output_file):
-    """
-    Processes a CSV file with URLs and analyzes each one for law firm/directory identification.
-
-    Args:
-        input_file (str): Path to input CSV file
-        output_file (str): Path to output CSV file
-    """
+# Process a CSV file and classify each URL
+def process_law_firm_csv(input_file, url_column, output_file):
     try:
-        # Read input CSV
         df = pd.read_csv(input_file)
 
-        # Verify required column exists
-        if "url" not in df.columns:
-            raise ValueError("Input CSV must contain a 'url' column")
+        # Check if specified column exists
+        if url_column not in df.columns:
+            raise ValueError(f"Input CSV must contain a '{url_column}' column")
 
-        print(
-            f"Starting analysis of {len(df)} URLs at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        print(f"\nStarting analysis of {len(df)} URLs...")
 
-        # Analyze each URL
-        df["type"] = df["url"].apply(analyze_law_page)
+        # Apply analysis function to each URL and create new column
+        df["type"] = df[url_column].apply(analyze_law_page)
 
-        # Calculate statistics
+        # Print classification summary
         stats = df["type"].value_counts()
         print("\nAnalysis completed with the following results:")
         print(stats)
 
-        # Save results
+        # Save the results to output file
         df.to_csv(output_file, index=False)
-        print(f"\nResults saved to {output_file}")
+        print(f"\nResults saved to '{output_file}'")
 
         return df
 
@@ -184,12 +123,14 @@ def process_law_firm_csv(input_file, output_file):
         print(f"Error processing CSV files: {str(e)}")
         return None
 
-
-# Example usage
+# Entry point for running the script
 if __name__ == "__main__":
-    # Configuration
-    INPUT_CSV = "resultados_m2.csv"  # Input CSV with 'url' column
-    OUTPUT_CSV = "german_law_analysis.csv"  # Output CSV with results
+    print("== German Law Website Analyzer ==")
 
-    # Run analysis
-    process_law_firm_csv(INPUT_CSV, OUTPUT_CSV)
+    # Get user inputs
+    input_csv = input("Enter the path to your input CSV file: ").strip()
+    url_column = input("Enter the name of the column with the URLs: ").strip()
+    output_csv = input("Enter a name for the output CSV file (e.g., results.csv): ").strip()
+
+    # Start processing
+    process_law_firm_csv(input_csv, url_column, output_csv)

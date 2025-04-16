@@ -3,17 +3,22 @@ import re
 from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright
 
-input_file = "links_Markenrecht.csv"
-output_file = "web_data_output.csv"
-
-
 def extract_info_from_content(content, text_content):
+    """
+    Extracts useful information like company name, emails, phones, addresses, 
+    CEO names, and LinkedIn profiles from the webpage content.
+    """
+    # Extract emails
     emails = re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", content)
+    
+    # Extract phone numbers
     phones = re.findall(r"\+?\d[\d\-\(\) ]{7,}\d", text_content)
 
+    # Extract the company name from the title tag
     title = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE)
     company_name = title.group(1).strip() if title else "Not found"
 
+    # Attempt to extract CEO information using a regex
     ceo_match = re.findall(
         r"(Mr\.|Ms\.|Dr\.|Prof\.)?\s?[A-Z][a-z]+(?:\s[A-Z][a-z]+)*\s?\(?((CEO|Chief Executive|Managing Partner|Founder|Managing Director)[^)]+)?\)?",
         text_content,
@@ -32,9 +37,11 @@ def extract_info_from_content(content, text_content):
         )
     )
 
+    # Extract addresses using a regex pattern
     address_pattern = re.compile(r"\d{5}\s[A-Za-zäöüÄÖÜß\-\s]+")
     addresses = address_pattern.findall(text_content)
 
+    # Extract LinkedIn profiles
     linkedin_links = re.findall(
         r"https://[a-z]+\.linkedin\.com/(in|company)/[a-zA-Z0-9\-_%]+", content
     )
@@ -58,12 +65,18 @@ def extract_info_from_content(content, text_content):
 
 
 def crawl_links_from_csv(csv_file, output_file):
+    """
+    Crawls URLs from the input CSV file, extracts relevant data, 
+    and saves the data into an output CSV file.
+    """
     data_rows = []
 
+    # Read the input CSV to extract the URLs
     with open(csv_file, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         urls = [row["Link"] for row in reader if row.get("Link")]
 
+    # Use Playwright to visit the URLs and extract information
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -76,6 +89,7 @@ def crawl_links_from_csv(csv_file, output_file):
                 text_content = page.inner_text("body")
                 info = extract_info_from_content(content, text_content)
 
+                # Prepare the data for writing to the output CSV
                 row = {
                     "source_url": url,
                     "company_name": info["company_name"],
@@ -93,6 +107,7 @@ def crawl_links_from_csv(csv_file, output_file):
 
         browser.close()
 
+    # Write the extracted data to the output CSV file
     fieldnames = [
         "source_url",
         "company_name",
@@ -110,5 +125,36 @@ def crawl_links_from_csv(csv_file, output_file):
     print(f"\n✅ Data saved to {output_file}")
 
 
-# Ejecutar el script
-crawl_links_from_csv(input_file, output_file)
+def main():
+    """
+    Main function to ask the user for input and output file paths, 
+    and crawl the URLs from the input CSV file.
+    """
+    # Ask the user for input parameters
+    input_file = input("Enter the input CSV file path (e.g., 'links_Markenrecht.csv'): ").strip()
+    url_column = input("Enter the name of the column containing the URLs (e.g., 'Link'): ").strip()
+    output_file = input("Enter the output CSV file path (e.g., 'web_data_output.csv'): ").strip()
+
+    # Read URLs from the input CSV
+    urls = []
+
+    try:
+        with open(input_file, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Ensure the specified URL column exists and is not empty
+                if url_column in row and row[url_column].strip():
+                    urls.append(row[url_column].strip())
+
+        # Process all the collected URLs
+        crawl_links_from_csv(input_file, output_file)
+        print(f"✅ The file has been processed and saved as '{output_file}'")
+
+    except FileNotFoundError:
+        print(f"Error: The file '{input_file}' could not be found.")
+    except Exception as e:
+        print(f"Error processing the file: {e}")
+
+
+if __name__ == "__main__":
+    main()
