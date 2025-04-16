@@ -71,7 +71,7 @@ def main():
         "4": ("Scrape links from specific pages (Step 1)", "scripts/bots/specific_pages/get_links_step1.py"),
         "5": ("Scrape data from collected links (Step 2)", "scripts/bots/specific_pages/get_data_from_links_step2.py"),
         "6": ("Scrape data from anwalt.de", "scripts/bots/specific_pages/get_data_from_anwalt.py"),
-        "7": ("Run LinkedIn bot", "scripts/bots/linkedin_bot.py"),
+        "7": ("Run LinkedIn bot", "scripts/bots/browsers/linkedin_bot.py"),
         "8": ("Exit", None)
     }
 
