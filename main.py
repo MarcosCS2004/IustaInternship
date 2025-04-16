@@ -61,6 +61,29 @@ def filters_menu():
         else:
             print("Invalid choice. Please select a number between 1 and 5.")
 
+def browsers_menu():
+    """Submenu for browser-based bots."""
+    browsers_options = {
+        "1": ("Run LinkedIn bot", "scripts/bots/browsers/linkedin_bot.py"),
+        "2": ("Run Web Finder bot", "scripts/bots/browsers/web_finder_bot.py"),
+        "3": ("Back to main menu", None)
+    }
+
+    while True:
+        print("\n--- Browsers Menu ---")
+        for key, (description, _) in browsers_options.items():
+            print(f"{key}. {description}")
+        
+        choice = input("Select a browser script (1-3): ").strip()
+
+        if choice == "3":
+            break
+        elif choice in browsers_options:
+            _, script_path = browsers_options[choice]
+            run_script(script_path)
+        else:
+            print("Invalid choice. Please select a number between 1 and 3.")
+
 def main():
     set_project_root()
 
@@ -71,7 +94,7 @@ def main():
         "4": ("Scrape links from specific pages (Step 1)", "scripts/bots/specific_pages/get_links_step1.py"),
         "5": ("Scrape data from collected links (Step 2)", "scripts/bots/specific_pages/get_data_from_links_step2.py"),
         "6": ("Scrape data from anwalt.de", "scripts/bots/specific_pages/get_data_from_anwalt.py"),
-        "7": ("Run LinkedIn bot", "scripts/bots/browsers/linkedin_bot.py"),
+        "7": ("Browsers", "browsers_menu"),
         "8": ("Exit", None)
     }
 
@@ -89,6 +112,8 @@ def main():
             filters_menu()
         elif choice == "3":
             tools_menu()
+        elif choice == "7":
+            browsers_menu()
         elif choice in options:
             _, script_path = options[choice]
             run_script(script_path)
