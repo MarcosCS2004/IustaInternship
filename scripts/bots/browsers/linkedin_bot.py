@@ -58,8 +58,8 @@ try:
         
         # Add 'linkedin' to the fieldnames if it's not already present
         fieldnames = (
-            reader.fieldnames + ["linkedin"]
-            if "linkedin" not in reader.fieldnames
+            reader.fieldnames + ["LinkedIn"]
+            if "LinkedIn" not in reader.fieldnames
             else reader.fieldnames
         )
 
@@ -69,7 +69,7 @@ try:
             query = f"Linkedin {name}"
             print(f"Searching for: {query}")
             link = duckduckgo_first_result(query)
-            row["linkedin"] = link
+            row["LinkedIn"] = link
             output_rows.append(row)
 
     # Write the updated data back to a new CSV file
