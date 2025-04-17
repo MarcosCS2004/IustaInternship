@@ -39,7 +39,8 @@ This project automates the search and collection of information about law firms 
 |    |
 |    └── tools/                                      # General utility scripts
 |        ├── put_space_after_comma.py
-|        └── remove_duplicates.py
+|        ├── remove_duplicates.py
+|        └── validate_urls.py
 |
 ├── data/
 |    ├── raw/                                        # Raw, unprocessed data
