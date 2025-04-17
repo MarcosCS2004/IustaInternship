@@ -18,7 +18,8 @@ def tools_menu():
     tools_options = {
         "1": ("Add space after commas", "scripts/tools/put_space_after_comma.py"),
         "2": ("Remove duplicate entries", "scripts/tools/remove_duplicates.py"),
-        "3": ("Back to main menu", None)
+        "3": ("Validate URLs", "scripts/tools/validate_urls.py"),
+        "4": ("Back to main menu", None)
     }
 
     while True:
@@ -26,9 +27,9 @@ def tools_menu():
         for key, (description, _) in tools_options.items():
             print(f"{key}. {description}")
         
-        choice = input("Select a tool (1-3): ").strip()
+        choice = input("Select a tool (1-4): ").strip()
 
-        if choice == "3":
+        if choice == "4":
             break
         elif choice in tools_options:
             _, script_path = tools_options[choice]
