@@ -55,15 +55,19 @@ def main():
 
         valid_links, invalid_links = check_links(url_list)
 
-        if valid_links:
+        # Case: All links valid
+        if valid_links and not invalid_links:
+            print("✅ All links are valid!")
+            return
+
+        # Save valid links only if there are some AND there are also invalid ones
+        if valid_links and invalid_links:
             with open('valid_links.csv', mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
                 writer.writerow([field_name])
                 for link in valid_links:
                     writer.writerow([link])
             print(f"✅ Valid links saved to 'valid_links.csv'.")
-        else:
-            print("No valid links found.")
 
         if invalid_links:
             with open('invalid_links.csv', mode='w', newline='', encoding='utf-8') as file:
