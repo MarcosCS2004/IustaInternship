@@ -43,7 +43,8 @@ def main():
     num_duplicates = duplicates.sum()
 
     if num_duplicates == 0:
-        print(f"\n✅ No duplicates found in column '{column_name}'.")
+        print(f"\n✅ No duplicates found in column '{column_name}'. Nothing to save.")
+        return
     else:
         print(f"\n⚠️ Found {num_duplicates} duplicate row(s) based on column '{column_name}'.")
 
