@@ -12,9 +12,19 @@ USER_AGENTS = [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
 ]
 
+BLACKLIST = ["jobs", "school", "pulse", "learning", "feed"]
+
+def is_valid_linkedin_url(url):
+    return (
+        "linkedin.com/in" in url
+        or "linkedin.com/company" in url
+    ) and not is_blacklisted_linkedin_url(url)
+
+def is_blacklisted_linkedin_url(url):
+    return any(bad in url for bad in BLACKLIST)
+
 def duckduckgo_first_result(query):
     headers = {"User-Agent": random.choice(USER_AGENTS)}
-
     url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
 
     try:
@@ -34,29 +44,25 @@ def duckduckgo_first_result(query):
                 print(f"✅ Extracted real URL: {real_url}")
                 return real_url
             else:
-                # Not a DuckDuckGo redirect link, return as-is
                 print(f"✅ Direct URL: {link}")
                 return link
-
         else:
             return ""
     except Exception as e:
         print(f"Error searching '{query}': {e}")
         return ""
 
-
-# Asking user for input CSV file path, output CSV file name, and column name containing the firm names
-input_file = input("Enter the path to your input CSV file: ").strip()  # Ask for input CSV file
-output_file_name = input("Enter the name for the output CSV file: ").strip()  # Ask for output CSV file name
-column_name = input("Enter the name of the column that contains the law firm names: ").strip()  # Ask for column name
+# User input
+input_file = input("Enter the path to your input CSV file: ").strip()
+output_file_name = input("Enter the name for the output CSV file: ").strip()
+column_name = input("Enter the name of the column that contains the law firm names: ").strip()
 
 output_rows = []
 
 try:
     with open(input_file, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        
-        # Add 'linkedin' to the fieldnames if it's not already present
+
         fieldnames = (
             reader.fieldnames + ["LinkedIn"]
             if "LinkedIn" not in reader.fieldnames
@@ -64,21 +70,26 @@ try:
         )
 
         for row in reader:
-            # Fetching the law firm name from the user-provided column
             name = row[column_name]
-            query = f"Linkedin {name}"
-            print(f"Searching for: {query}")
+            query = f"LinkedIn {name}"
+            print(f"🔎 Searching for: {query}")
             link = duckduckgo_first_result(query)
-            row["LinkedIn"] = link
+
+            if is_valid_linkedin_url(link):
+                row["LinkedIn"] = link
+                print("✅ LinkedIn link accepted.")
+            else:
+                row["LinkedIn"] = "Not found"
+                print("❌ No valid LinkedIn link found.")
+
             output_rows.append(row)
 
-    # Write the updated data back to a new CSV file
     with open(output_file_name, mode="w", encoding="utf-8", newline="") as output_file:
         writer = csv.DictWriter(output_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(output_rows)
 
-    print(f"✅ File updated with LinkedIn links and saved as '{output_file_name}'.")
+    print(f"\n✅ Done! File saved as '{output_file_name}' with LinkedIn links.")
 
 except Exception as e:
     print(f"General error: {e}")
