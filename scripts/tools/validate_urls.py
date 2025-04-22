@@ -34,7 +34,7 @@ def main():
         valid_rows = []
         invalid_rows = []
 
-        with open(csv_file, mode='r', newline='', encoding='utf-8') as file:
+        with open(csv_file, mode='r', newline='', encoding='latin-1') as file:
             reader = csv.DictReader(file)
             headers = reader.fieldnames
 
