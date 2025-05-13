@@ -20,7 +20,7 @@ This project automates the search and collection of information about law firms 
 |    |   |
 |    │   ├── lawfirms/                               # Law firm-specific scrapers
 |    │   │   ├── bot_scraper.py
-|    │   │   └── filtered_bot.py
+|    │   │   └── bot_filtered.py
 |    |   |
 |    │   └── specific_pages/                         # Step-by-step scrapers from a specific URL
 |    │       ├── get_links_step1.py
@@ -38,11 +38,11 @@ This project automates the search and collection of information about law firms 
 |    │   └── search_lawyers_api.py
 |    |
 |    └── tools/                                      # General utility scripts
+|        ├── csv_json_merger.py
 |        ├── put_space_after_comma.py
 |        ├── remove_duplicates.py
 |        ├── validate_urls.py
 |        └── remove_same_words.py
-
 |
 ├── data/
 |    ├── raw/                                        # Raw, unprocessed data
