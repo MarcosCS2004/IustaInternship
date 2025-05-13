@@ -20,17 +20,19 @@ def tools_menu():
         "2": ("Remove duplicate entries", "scripts/tools/remove_duplicates.py"),
         "3": ("Validate URLs", "scripts/tools/validate_urls.py"),
         "4": ("Remove repeated entries", "scripts/tools/remove_same_words.py"),
-        "5": ("Back to main menu", None)
+        "5": ("Match and merge JSON data into a CSV using customizable field mappings", "scripts/tools/csv_json_matcher.py"),
+        "6": ("Back to main menu", None)
     }
+
 
     while True:
         print("\n--- Tools Menu ---")
         for key, (description, _) in tools_options.items():
             print(f"{key}. {description}")
         
-        choice = input("Select a tool (1-5): ").strip()
+        choice = input("Select a tool (1-6): ").strip()
 
-        if choice == "5":
+        if choice == "6":
             break
         elif choice in tools_options:
             _, script_path = tools_options[choice]
