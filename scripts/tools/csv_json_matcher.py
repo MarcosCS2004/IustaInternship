@@ -141,8 +141,8 @@ def normalize(text):
     return text
 
 for csv_col, json_col in field_mapping.items():
-    df[csv_col] = df[csv_col].apply(normalize)
-    json_df[json_col] = json_df[json_col].apply(normalize)
+    df[f"_norm_{csv_col}"] = df[csv_col].apply(normalize)
+    json_df[f"_norm_{json_col}"] = json_df[json_col].apply(normalize)
 
 output_file = input("\n💾 Enter the name of the output file (include extension .csv or .json): ").strip()
 
@@ -159,8 +159,8 @@ def find_matches(row):
         matched_fields = []
         mismatched_fields = []
         for csv_col, json_col in field_mapping.items():
-            csv_val = row.get(csv_col, "")
-            json_val = jrow.get(json_col, "")
+            csv_val = row.get(f"_norm_{csv_col}", "")
+            json_val = jrow.get(f"_norm_{json_col}", "")
             score = fuzz.token_sort_ratio(csv_val, json_val)
 
             if score >= 85:
@@ -251,6 +251,10 @@ for idx, row in df.iterrows():
             log_entries.append("not match")
 
     df.at[idx, "logs"] = ", ".join(log_entries)
+
+# --- Drop temporary normalized columns before saving ---
+temp_cols = [col for col in df.columns if col.startswith("_norm_")]
+df.drop(columns=temp_cols, inplace=True)
 
 # --- Save output based on file extension ---
 if output_file.endswith('.csv'):
