@@ -3,16 +3,69 @@ import json
 from unidecode import unidecode
 from rapidfuzz import fuzz
 import re
+from pathlib import Path
+import csv
 
-# --- Load multiple JSON files ---
-json_paths = input("📄 Enter the paths to JSON files (comma-separated): ").strip().split(",")
+store_path = "store_data.csv"
+store_columns = ["json_path", "file_number"]
+
+# Detect the last used file number in the CSV (if any)
+starting_file_number = 1
+if Path(store_path).exists():
+    try:
+        with open(store_path, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            file_numbers = [int(row['file_number']) for row in reader if 'file_number' in row and row['file_number'].isdigit()]
+            if file_numbers:
+                starting_file_number = max(file_numbers) + 1
+    except Exception as e:
+        print(f"⚠️ Error al leer file_number desde store_data.csv: {e}")
+
+
+# Load or create store_data
+if Path(store_path).exists():
+    store_df = pd.read_csv(store_path, dtype=str)
+    # Delete empty rows (if any)
+    store_df = store_df.dropna(subset=["json_path"])
+else:
+    store_df = pd.DataFrame(columns=store_columns)
+
+# --- Request the JSON that the user wants in this execution ---
+json_paths_input = input("📄 Enter the paths to JSON files (comma-separated): ").strip()
+json_paths = [p.strip() for p in json_paths_input.split(",") if p.strip()]
+
+new_rows = []
+for path in json_paths:
+    if path not in store_df["json_path"].values:
+        new_rows.append([path, None])
+
+if new_rows:
+    temp_df = pd.DataFrame(new_rows, columns=store_columns)
+    store_df = pd.concat([store_df, temp_df], ignore_index=True)
+
+# Assign new file_numbers to those that don't have one yet
+current_max = store_df["file_number"].dropna().astype(int).max() if not store_df["file_number"].dropna().empty else 0
+counter = current_max + 1
+store_df["file_number"] = store_df["file_number"].astype(object)
+
+for idx, row in store_df.iterrows():
+    if pd.isna(row["file_number"]):
+        store_df.at[idx, "file_number"] = counter
+        counter += 1
+
+# Save updates
+store_df.reset_index(drop=True, inplace=True)
+store_df.to_csv(store_path, index=False, encoding='utf-8-sig')
+
 combined_objects = []
 json_row_origins = []
 
-for file_idx, path in enumerate(json_paths, start=1):
-    path = path.strip()
+# List files from the last used file_number
+for file_index, row in enumerate(store_df.itertuples(), 0):
+    file_number = int(row.file_number) if row.file_number is not None else "?"
+    file_path = row.json_path
     try:
-        with open(path, encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             json_data = json.load(f)
 
         extracted = []
@@ -25,14 +78,19 @@ for file_idx, path in enumerate(json_paths, start=1):
 
         for i, obj in enumerate(extracted):
             combined_objects.append(obj)
-            safe_id = obj.get("safeId")
             json_row_origins.append({
-                "safeId": safe_id,
+                "json_obj": obj,
                 "row_number": i + 1,
-                "file_number": file_idx
+                "file_number": file_number,
+                "file_position": file_index
             })
+
+        json_index_to_origin = {}
+        for idx, origin in enumerate(json_row_origins):
+            json_index_to_origin[idx] = origin
+
     except Exception as e:
-        print(f"⚠️ Could not load JSON from {path}: {e}")
+        print(f"⚠️ Could not load JSON from {file_path}: {e}")
 
 if not combined_objects:
     print("❌ No valid JSON objects found. Exiting.")
@@ -45,6 +103,12 @@ print("\n📋 Available fields in JSON:")
 for key in json_df.columns:
     print(f" - {key}")
 json_field_to_save = input("\n🔑 Which field from the JSON should be saved in the new column?: ").strip()
+
+# Update json_row_origins to use the selected field as the identifier
+for origin in json_row_origins:
+    json_obj = origin.pop("json_obj")
+    origin["identifier"] = json_obj.get(json_field_to_save)
+
 
 if json_field_to_save not in json_df.columns:
     print(f"\n❌ Error: Field '{json_field_to_save}' not found in the JSON.")
@@ -75,7 +139,7 @@ else:
     print("\n❗ No unique ID column found. Any duplicates will be marked in logs.")
 
 # --- Ask for new column name ---
-new_column_name = input("\n📦 What should be the name of the new column to add?: ").strip()
+new_column_name = input("\n📦 What should be the name of the column to add or update?: ").strip()
 if new_column_name not in df.columns:
     df[new_column_name] = ""
 else:
@@ -169,14 +233,16 @@ def find_matches(row):
             else:
                 mismatched_fields.append(csv_col)
         if len(field_mapping) > 0 and match_count > 0:
-            origin = next((o for o in json_row_origins if o["safeId"] == jrow.get("safeId")), None)
+            origin = json_index_to_origin.get(j_idx, None)
             matches.append({
                 "jrow": jrow,
                 "matched_fields": matched_fields,
                 "mismatched_fields": mismatched_fields,
                 "file_number": origin["file_number"] if origin else "?",
+                "file_position": origin["file_position"] if origin else -1,
                 "row_number": origin["row_number"] if origin else "?"
             })
+
     return matches
 
 # --- Create 'MultipleMatches' column if needed ---
@@ -240,11 +306,42 @@ for idx, row in df.iterrows():
                 else:
                     sources.append(f"file {file_num}")
             # Collect multiple match values
-            safe_ids = [m["jrow"].get(json_field_to_save, "") for m in exact if m["jrow"].get(json_field_to_save)]
-            df.at[idx, "MultipleMatches"] = ", ".join(safe_ids)
-            log_entries.append(f"{len(exact)} matches exact: {', '.join(sources)}")
+            existing_matches = df.at[idx, "MultipleMatches"]
+            existing_list = [x.strip() for x in existing_matches.split(",") if x.strip()] if existing_matches else []
+
+            seen = set(existing_list)
+            
+            seen_values = set()
+            unique_exact_matches = []
+
+            for m in sorted(exact, key=lambda m: m["file_position"]):
+                value = m["jrow"].get(json_field_to_save, "")
+                if value and value not in seen_values:
+                    seen_values.add(value)
+                    unique_exact_matches.append(m)
+
+            # Agregar los valores únicos a MultipleMatches
+            if unique_exact_matches:
+                existing_matches = df.at[idx, "MultipleMatches"]
+                existing_list = [x.strip() for x in existing_matches.split(",") if x.strip()] if existing_matches else []
+                for m in unique_exact_matches:
+                    value = m["jrow"].get(json_field_to_save, "")
+                    if value not in existing_list:
+                        existing_list.append(value)
+                df.at[idx, "MultipleMatches"] = ", ".join(existing_list)
+
+            # Rehacer los logs con conteo corregido
+            file_counts = {}
+            for m in unique_exact_matches:
+                file_counts[m['file_number']] = file_counts.get(m['file_number'], 0) + 1
+            sources = []
+            for file_num, count in file_counts.items():
+                sources.append(f"file {file_num} ({count} matches)" if count > 1 else f"file {file_num}")
+
+            log_entries.append(f"{len(unique_exact_matches)} matches exact: {', '.join(sources)}")
+
         elif partial:
-            best = max(partial, key=lambda x: len(x["matched_fields"]))
+            best = max(partial, key=lambda x: x["file_position"])
             fields = ", ".join(best["matched_fields"])
             log_entries.append(f"only [{fields}] from file {best['file_number']}")
         else:
