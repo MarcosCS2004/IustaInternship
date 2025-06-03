@@ -320,7 +320,7 @@ for idx, row in df.iterrows():
                     seen_values.add(value)
                     unique_exact_matches.append(m)
 
-            # Agregar los valores únicos a MultipleMatches
+            # Adding the unique values ​​to MultipleMatches
             if unique_exact_matches:
                 existing_matches = df.at[idx, "MultipleMatches"]
                 existing_list = [x.strip() for x in existing_matches.split(",") if x.strip()] if existing_matches else []
@@ -330,7 +330,7 @@ for idx, row in df.iterrows():
                         existing_list.append(value)
                 df.at[idx, "MultipleMatches"] = ", ".join(existing_list)
 
-            # Rehacer los logs con conteo corregido
+            # Redo logs with corrected count
             file_counts = {}
             for m in unique_exact_matches:
                 file_counts[m['file_number']] = file_counts.get(m['file_number'], 0) + 1
