@@ -225,23 +225,31 @@ def find_matches(row):
         for csv_col, json_col in field_mapping.items():
             csv_val = row.get(f"_norm_{csv_col}", "")
             json_val = jrow.get(f"_norm_{json_col}", "")
+
+            if not csv_val and not json_val:
+                continue
+
             score = fuzz.token_sort_ratio(csv_val, json_val)
 
             if score >= 85:
-                matched_fields.append(csv_col)
+                matched_fields.append(json_col)
                 match_count += 1
             else:
-                mismatched_fields.append(csv_col)
+                mismatched_fields.append(json_col)
+
         if len(field_mapping) > 0 and match_count > 0:
-            origin = json_index_to_origin.get(j_idx, None)
-            matches.append({
-                "jrow": jrow,
-                "matched_fields": matched_fields,
-                "mismatched_fields": mismatched_fields,
-                "file_number": origin["file_number"] if origin else "?",
-                "file_position": origin["file_position"] if origin else -1,
-                "row_number": origin["row_number"] if origin else "?"
-            })
+            avg_field_length = sum(len(str(jrow.get(field_mapping[c], ""))) for c in field_mapping if field_mapping[c] in matched_fields) / (len(matched_fields) or 1)
+
+            if match_count >= 2 and avg_field_length > 4:
+                origin = json_index_to_origin.get(j_idx, None)
+                matches.append({
+                    "jrow": jrow,
+                    "matched_fields": matched_fields,
+                    "mismatched_fields": mismatched_fields,
+                    "file_number": origin["file_number"] if origin else "?",
+                    "file_position": origin["file_position"] if origin else -1,
+                    "row_number": origin["row_number"] if origin else "?"
+                })
 
     return matches
 
@@ -296,9 +304,12 @@ for idx, row in df.iterrows():
             log_entries.append(f"exact match from file {match['file_number']}")
             matched_count += 1
         elif len(exact) > 1:
+            df.at[idx, new_column_name] = ""
+
             file_counts = {}
             for m in exact:
                 file_counts[m['file_number']] = file_counts.get(m['file_number'], 0) + 1
+
             sources = []
             for file_num, count in file_counts.items():
                 if count > 1:
@@ -307,7 +318,10 @@ for idx, row in df.iterrows():
                     sources.append(f"file {file_num}")
             # Collect multiple match values
             existing_matches = df.at[idx, "MultipleMatches"]
-            existing_list = [x.strip() for x in existing_matches.split(",") if x.strip()] if existing_matches else []
+            if pd.isna(existing_matches):
+                existing_list = []
+            else:
+                existing_list = [x.strip() for x in str(existing_matches).split(",") if x.strip()]
 
             seen = set(existing_list)
             
@@ -323,7 +337,11 @@ for idx, row in df.iterrows():
             # Adding the unique values ​​to MultipleMatches
             if unique_exact_matches:
                 existing_matches = df.at[idx, "MultipleMatches"]
-                existing_list = [x.strip() for x in existing_matches.split(",") if x.strip()] if existing_matches else []
+                if pd.isna(existing_matches):
+                    existing_list = []
+                else:
+                    existing_list = [x.strip() for x in str(existing_matches).split(",") if x.strip()]
+
                 for m in unique_exact_matches:
                     value = m["jrow"].get(json_field_to_save, "")
                     if value not in existing_list:
@@ -348,6 +366,30 @@ for idx, row in df.iterrows():
             log_entries.append("not match")
 
     df.at[idx, "logs"] = ", ".join(log_entries)
+
+# --- Post-process: if only one MultipleMatch, treat it as exact ---
+for idx, row in df.iterrows():
+    multiple_matches = [x.strip() for x in str(row.get("MultipleMatches", "")).split(",") if x.strip()]
+    if len(multiple_matches) == 1:
+        value = multiple_matches[0]
+        if not row.get(new_column_name):
+            df.at[idx, new_column_name] = value
+            matched_count += 1
+
+        # Check where that value came from, so we can log the correct source
+        for j_idx, jrow in json_df.iterrows():
+            if str(jrow.get(json_field_to_save, "")).strip() == value:
+                origin = json_index_to_origin.get(j_idx, {})
+                file_number = origin.get("file_number", "?")
+                existing_log = df.at[idx, "logs"]
+                df.at[idx, "logs"] = f"exact match from file {file_number}"
+                break
+
+# --- Clean-up: clear MultipleMatches only for exact matches ---
+for idx, row in df.iterrows():
+    log_text = str(row.get("logs", "")).lower()
+    if "exact match from file" in log_text:
+        df.at[idx, "MultipleMatches"] = ""
 
 # --- Drop temporary normalized columns before saving ---
 temp_cols = [col for col in df.columns if col.startswith("_norm_")]
